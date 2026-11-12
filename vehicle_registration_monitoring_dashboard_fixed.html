@@ -32,7 +32,7 @@ main{max-width:1500px;margin:24px auto;padding:0 24px 42px}
 <header><div class="top"><div class="brand"><div class="mark">▤</div><div><h1>Vehicle Registration Monitoring</h1><div class="sub">Document movement • Legal Department • RMV • Pending applications</div></div></div>
 <div class="actions"><button class="btn primary" onclick="downloadCSV()">Export View</button></div></div></header>
 <main>
-<div class="toolbar"><div class="tabs"><button class="tab active" data-tab="all" onclick="setTab('all',this)">All Applications</button><button class="tab" data-tab="brand new" onclick="setTab('brand new',this)">Brand New</button><button class="tab" data-tab="open papers" onclick="setTab('open papers',this)">Open Papers</button></div><div class="updated" id="updated">Demo view · Upload your latest workbook to refresh</div></div>
+<div class="toolbar"><div class="tabs"><button class="tab active" data-tab="all" onclick="setTab('all',this)">All Applications</button><button class="tab" data-tab="brand new" onclick="setTab('brand new',this)">Brand New</button><button class="tab" data-tab="open papers" onclick="setTab('open papers',this)">Open Papers</button></div><div class="updated" id="updated">Connecting to the GitHub Excel workbook…</div></div>
 <div class="grid" id="kpis"></div>
 <div class="two">
  <section class="panel"><h2 class="section-title">Legal Department Monitoring</h2><div class="metric-row" id="legalMetrics"></div><div id="legalBars"></div><div class="smallnote">“Date Received” is treated as the date documents were received back from Legal. “Date Handed Over” is treated as the date sent to Legal.</div></section>
@@ -61,8 +61,8 @@ function current(){return records.filter(r=>activeTab==='all'||r._sheet===active
 function card(label,num,hint,tint){return `<div class="card kpi" style="--tint:${tint}"><div class="label">${label}</div><div class="num">${num}</div><div class="hint">${hint}</div></div>`}
 function metric(label,num,sub){return `<div class="metric"><div class="m-label">${label}</div><div class="m-value">${num}</div><div class="m-sub">${sub}</div></div>`}
 function bar(label,n,total,color){let p=total?Math.round(n/total*100):0;return `<div class="barline"><div class="barhead"><span>${label}</span><b>${n.toLocaleString()} <span style="color:#8793a5;font-weight:500">(${p}%)</span></b></div><div class="track"><div class="fill" style="width:${p}%;background:${color||'#3478f6'}"></div></div></div>`}
-function render(){let a=current(),total=a.length,legal=a.filter(r=>has(r['Date Received'])).length,legalSent=a.filter(r=>has(r['Date Handed Over'])).length,legalPending=a.filter(r=>status(r)==='Pending from Legal').length,rmvSent=a.filter(r=>has(r['Date Handed Over to RMV'])).length,rmvGot=a.filter(r=>has(r['Date Received from RMV'])).length,rmvPending=a.filter(r=>has(r['Date Handed Over to RMV'])&&!has(r['Date Received from RMV'])).length;
-document.getElementById('kpis').innerHTML=[card('Total Applications',total,'Across selected worksheet','#eaf1ff'),card('Received from Legal',legal,`${legalSent} handed over to Legal`,'#e3f6ee'),card('Pending from Legal',legalPending,'Awaiting return from Legal','#fff3dc'),card('Sent to RMV',rmvSent,'Applications handed over to RMV','#eaf1ff'),card('Received from RMV',rmvGot,'RMV return recorded','#e3f6ee'),card('Pending from RMV',rmvPending,'Awaiting return from RMV','#fff3dc')].join('');
+function render(){let a=current(),total=a.length,legal=a.filter(r=>status(r)==='Received from Legal').length,legalSent=a.filter(r=>has(r['Date Handed Over'])).length,legalPending=a.filter(r=>status(r)==='Pending from Legal').length,rmvSent=a.filter(r=>has(r['Date Handed Over to RMV'])).length,rmvGot=a.filter(r=>has(r['Date Received from RMV'])).length,rmvPending=a.filter(r=>has(r['Date Handed Over to RMV'])&&!has(r['Date Received from RMV'])).length;
+document.getElementById('kpis').innerHTML=[card('Total Applications',total,'Across selected worksheet','#eaf1ff'),card('Received from Legal',legal,`${legalSent} handed over to Automobile Division`,'#e3f6ee'),card('Pending from Legal',legalPending,'Awaiting return from Legal','#fff3dc'),card('Sent to RMV',rmvSent,'Applications handed over to RMV','#eaf1ff'),card('Received from RMV',rmvGot,'RMV return recorded','#e3f6ee'),card('Pending from RMV',rmvPending,'Awaiting return from RMV','#fff3dc')].join('');
 document.getElementById('legalMetrics').innerHTML=metric('Handed over',legalSent,'Date Handed Over')+metric('Received back',legal,'Date Received')+metric('Pending',legalPending,'Awaiting receipt');
 document.getElementById('legalBars').innerHTML=bar('Received from Legal',legal,total,'#23966b')+bar('Pending from Legal',legalPending,total,'#e49a28');
 document.getElementById('rmvMetrics').innerHTML=metric('Handed over',rmvSent,'Date Handed Over to RMV')+metric('Received from RMV',rmvGot,'Date Received from RMV')+metric('Pending',rmvPending,'Awaiting RMV');
@@ -80,36 +80,30 @@ async function loadHostedWorkbook(){
   const updated=document.getElementById('updated');
   updated.textContent='Connecting to the GitHub Excel workbook…';
   try{
-    const repoApi='https://api.github.com/repos/dihanK/RMV-DOCUMENT-TRACKING-';
-    const repoResponse=await fetch(repoApi);
-    if(!repoResponse.ok)throw new Error('Repository could not be accessed. Make sure it is public and the repository name is correct.');
-    const repo=await repoResponse.json();
-    const branch=repo.default_branch||'main';
-    const listResponse=await fetch(`${repoApi}/contents/?ref=${encodeURIComponent(branch)}`);
-    if(!listResponse.ok)throw new Error('Could not read the repository file list.');
-    const files=await listResponse.json();
-    const workbooks=files.filter(f=>f.type==='file'&&/\\.xlsx?$/i.test(f.name));
-    if(!workbooks.length)throw new Error('No Excel workbook was found in the repository root. Keep the Excel file beside this HTML file in GitHub.');
-    let workbookFile=workbooks.find(f=>/rmv|vehicle|tracking|document/i.test(f.name))||workbooks[0];
-    if(workbooks.length>1&&!workbooks.some(f=>/rmv|vehicle|tracking|document/i.test(f.name))){
-      throw new Error('More than one Excel file was found. Rename the correct workbook so its name includes RMV, Vehicle, Tracking, or Document.');
+    // Exact workbook filename supplied by the user; keep it in the repository root.
+    const workbookUrl='https://raw.githubusercontent.com/dihanK/RMV-DOCUMENT-TRACKING-/main/Vehicle_Registration_Document_Tracker.xlsx';
+    const response=await fetch(workbookUrl+'?v='+Date.now(),{cache:'no-store'});
+    if(!response.ok){
+      throw new Error(`Excel download failed (HTTP ${response.status}). Check that the workbook is committed to the main branch and the repository is public.`);
     }
-    const fileResponse=await fetch(workbookFile.download_url);
-    if(!fileResponse.ok)throw new Error('The Excel workbook could not be downloaded from GitHub.');
-    const data=await fileResponse.arrayBuffer();
-    const wb=XLSX.read(data,{type:'array',cellDates:true});
-    parseWorkbook(wb);
+    const data=await response.arrayBuffer();
+    const workbook=XLSX.read(data,{type:'array',cellDates:true});
+    if(!workbook.SheetNames.includes('brand new')||!workbook.SheetNames.includes('open papers')){
+      throw new Error('The workbook loaded, but the expected sheets “brand new” and “open papers” were not found.');
+    }
+    parseWorkbook(workbook);
+    if(!records.length)throw new Error('The Excel workbook was downloaded, but no application records were found. Check the worksheet headers and data rows.');
     activeTab='all';
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab==='all'));
-    updated.textContent=`Live GitHub data · ${workbookFile.name} · ${records.length} records`;
+    updated.textContent=`Connected to GitHub · ${records.length} applications · ${new Date().toLocaleString()}`;
     render();
   }catch(err){
-    console.error('GitHub workbook loading error:',err);
+    console.error('GitHub Excel connection error:',err);
     records=[];
     render();
-    updated.textContent='Could not load the GitHub Excel workbook';
+    updated.textContent='Excel connection failed';
     document.getElementById('rows').innerHTML=`<tr><td colspan="10" class="empty">${err.message}</td></tr>`;
-    document.getElementById('rowCount').textContent='Check that the repository is public and the Excel workbook is in its root folder.';
+    document.getElementById('rowCount').textContent='Check the workbook filename, main branch, repository visibility, and GitHub upload.';
   }
 }
 function downloadCSV(){let a=current();let headers=['Sheet','Employee Name','MSPS No.','Vehicle No.','Overall Status','Legal Status','Date Received','RMV Status','Date Received from RMV','Remarks / Return Reason'];let lines=[headers,...a.map(r=>[r._sheet,r['Employee Name'],r['MSPS No.'],r['Vehicle No.'],r['Overall Status'],status(r),fmt(r['Date Received']),rmv(r),fmt(r['Date Received from RMV']),r['Remarks / Return Reason']])];let csv=lines.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');let blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='vehicle-registration-monitoring.csv';link.click();URL.revokeObjectURL(url)}
