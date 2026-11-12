@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vehicle Registration | Document Monitoring</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f3f6fb;--panel:#fff;--ink:#17243a;--muted:#718096;--line:#e5eaf2;--navy:#142b4a;--blue:#3478f6;--teal:#0f9d91;--amber:#e49a28;--red:#d95757;--green:#23966b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
+header{background:linear-gradient(115deg,#10243e,#1e4169);color:white;padding:26px 30px 24px}
+.top{max-width:1500px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px}.mark{width:44px;height:44px;border-radius:13px;background:#ffffff20;display:grid;place-items:center;font-size:22px}
+h1{font-size:23px;margin:0;font-weight:700;letter-spacing:.1px}.sub{color:#c4d2e3;margin-top:4px;font-size:13px}
+.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.btn{border:1px solid #ffffff55;background:#ffffff13;color:white;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:600}.btn.primary{background:#fff;color:#17395f;border-color:#fff}.btn:hover{opacity:.88}#fileInput{display:none}
+main{max-width:1500px;margin:24px auto;padding:0 24px 42px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:17px}.tabs{display:flex;background:#e7edf6;padding:4px;border-radius:10px;gap:3px}.tab{border:0;background:transparent;padding:9px 16px;border-radius:7px;color:#617086;font-weight:700;cursor:pointer}.tab.active{background:#fff;color:#17395f;box-shadow:0 1px 4px #1d355710}
+.updated{font-size:12px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:13px;margin-bottom:18px}
+.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:0 3px 14px #20365308}
+.kpi{padding:16px 17px;min-height:112px;position:relative;overflow:hidden}.kpi:after{content:"";position:absolute;width:64px;height:64px;border-radius:50%;right:-18px;top:-18px;background:var(--tint,#eaf1ff)}
+.kpi .label{font-size:12px;color:var(--muted);font-weight:650;position:relative;z-index:1}.kpi .num{font-size:29px;font-weight:750;letter-spacing:-.8px;margin-top:8px;position:relative;z-index:1}.kpi .hint{font-size:11px;color:var(--muted);margin-top:1px}
+.section-title{font-size:15px;font-weight:750;margin:0 0 13px}.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:17px}
+.panel{padding:18px;margin-bottom:17px}.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.metric{padding:13px;border-radius:10px;background:#f7f9fc;border:1px solid #edf1f6}.metric .m-label{font-size:12px;color:var(--muted)}.metric .m-value{font-size:23px;font-weight:750;margin-top:4px}.metric .m-sub{font-size:11px;color:var(--muted)}
+.barline{margin:12px 0}.barhead{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-bottom:6px}.track{height:9px;border-radius:20px;background:#edf1f6;overflow:hidden}.fill{height:100%;border-radius:20px;background:var(--blue)}
+.filters{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:13px}.filters input,.filters select{border:1px solid var(--line);background:#fff;padding:10px 12px;border-radius:8px;color:var(--ink);min-width:160px;outline:none}.filters input{flex:1;min-width:220px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:9px}table{border-collapse:collapse;width:100%;min-width:950px;font-size:12px}th{background:#f6f8fb;color:#5b6a80;text-align:left;font-weight:700;padding:11px 12px;white-space:nowrap;position:sticky;top:0}td{padding:10px 12px;border-top:1px solid #edf0f5;white-space:nowrap}tbody tr:hover{background:#f8fbff}
+.pill{display:inline-block;border-radius:30px;padding:4px 8px;font-size:10px;font-weight:700;background:#edf2f8;color:#5e6b7e}.pill.ok{background:#e5f6ee;color:#16805a}.pill.pending{background:#fff3dc;color:#a96c0b}.pill.bad{background:#fdeaea;color:#bd4444}
+.smallnote{color:var(--muted);font-size:11px;margin-top:9px}.empty{padding:28px;text-align:center;color:var(--muted)}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:700px){header{padding:20px}.grid{grid-template-columns:repeat(2,1fr)}main{padding:0 12px 28px;margin-top:16px}.two{grid-template-columns:1fr}.metric-row{grid-template-columns:1fr 1fr}h1{font-size:19px}}
+</style></head>
+<body>
+<header><div class="top"><div class="brand"><div class="mark">▤</div><div><h1>Vehicle Registration Monitoring</h1><div class="sub">Document movement • Legal Department • RMV • Pending applications</div></div></div>
+<div class="actions"><button class="btn primary" onclick="downloadCSV()">Export View</button></div></div></header>
+<main>
+<div class="toolbar"><div class="tabs"><button class="tab active" data-tab="all" onclick="setTab('all',this)">All Applications</button><button class="tab" data-tab="brand new" onclick="setTab('brand new',this)">Brand New</button><button class="tab" data-tab="open papers" onclick="setTab('open papers',this)">Open Papers</button></div><div class="updated" id="updated">Demo view · Upload your latest workbook to refresh</div></div>
+<div class="grid" id="kpis"></div>
+<div class="two">
+ <section class="panel"><h2 class="section-title">Legal Department Monitoring</h2><div class="metric-row" id="legalMetrics"></div><div id="legalBars"></div><div class="smallnote">“Date Received” is treated as the date documents were received back from Legal. “Date Handed Over” is treated as the date sent to Legal.</div></section>
+ <section class="panel"><h2 class="section-title">RMV Monitoring</h2><div class="metric-row" id="rmvMetrics"></div><div id="rmvBars"></div><div class="smallnote">RMV pending = applications handed over to RMV without a recorded “Date Received from RMV”.</div></section>
+</div>
+<div class="two">
+ <section class="panel"><h2 class="section-title">Document Checklist Monitoring</h2><div id="docBars"></div><div class="smallnote">Counts are based on document-status cells marked “Received”. Pending includes blank, pending, and not acceptable statuses.</div></section>
+ <section class="panel"><h2 class="section-title">Application Status</h2><div id="statusBars"></div><div class="smallnote">Overall status is taken directly from each worksheet.</div></section>
+</div>
+<section class="panel"><h2 class="section-title">Application Register</h2><div class="filters"><input id="search" placeholder="Search employee, vehicle number, MSPS..." oninput="renderTable()"><select id="statusFilter" onchange="renderTable()"><option value="">All overall statuses</option></select><select id="legalFilter" onchange="renderTable()"><option value="">All Legal stages</option><option>Received from Legal</option><option>Pending from Legal</option><option>Not yet handed to Legal</option></select><select id="rmvFilter" onchange="renderTable()"><option value="">All RMV stages</option><option>Received from RMV</option><option>Pending from RMV</option><option>Not yet handed to RMV</option></select></div><div class="tablewrap"><table><thead><tr><th>Sheet</th><th>Employee</th><th>Vehicle No.</th><th>MSPS No.</th><th>Overall Status</th><th>Legal Status</th><th>Legal Received Date</th><th>RMV Status</th><th>RMV Received Date</th><th>Remarks</th></tr></thead><tbody id="rows"></tbody></table></div><div class="smallnote" id="rowCount"></div></section>
+</main>
+<script>
+let records=[],activeTab='all',docFields=[];
+const norm=v=>String(v??'').trim().toLowerCase();
+const dateVal=v=>v instanceof Date?v:(typeof v==='number'?new Date(Math.round((v-25569)*86400*1000)):v?new Date(v):null);
+const validDate=v=>{let d=dateVal(v);return d&&!isNaN(d.getTime())};
+const fmt=v=>validDate(v)?dateVal(v).toLocaleDateString('en-GB'):'—';
+const has=v=>v!==null&&v!==undefined&&String(v).trim()!=='';
+const get=(r,k)=>r[k]??'';
+function makeRecord(row,sheet,fields){let o={};fields.forEach((h,i)=>o[String(h??'').trim()]=row[i]);o._sheet=sheet;return o}
+function status(r){if(norm(r['Overall Status'])==='not acceptable')return 'Pending from Legal';return has(r['Date Received'])?'Received from Legal':has(r['Date Handed Over'])?'Pending from Legal':'Not yet handed to Legal'}
+function rmv(r){return has(r['Date Received from RMV'])?'Received from RMV':has(r['Date Handed Over to RMV'])?'Pending from RMV':'Not yet handed to RMV'}
+function parseWorkbook(wb){let out=[];for(let s of wb.SheetNames){let ws=wb.Sheets[s],arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});let hi=s.toLowerCase()==='brand new'?3:0;let headers=arr[hi]||[];for(let i=hi+1;i<arr.length;i++){let row=arr[i];if(!row||!has(row[0])||!headers.some((h,j)=>j>0&&has(row[j])))continue;out.push(makeRecord(row,s.toLowerCase(),headers));}}records=out;docFields=[...new Set(records.flatMap(r=>Object.keys(r).filter(k=>!['_sheet','No.','Employee Name','MSPS No.','Vehicle No.','Category','Overall Status','Remarks / Return Reason','Date Handed Over','Handed Over By','Date Received','Received By','Date Handed Over to RMV','Date Received from RMV'].includes(k))))];}
+function setTab(t,el){activeTab=t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===el));render()}
+function current(){return records.filter(r=>activeTab==='all'||r._sheet===activeTab)}
+function card(label,num,hint,tint){return `<div class="card kpi" style="--tint:${tint}"><div class="label">${label}</div><div class="num">${num}</div><div class="hint">${hint}</div></div>`}
+function metric(label,num,sub){return `<div class="metric"><div class="m-label">${label}</div><div class="m-value">${num}</div><div class="m-sub">${sub}</div></div>`}
+function bar(label,n,total,color){let p=total?Math.round(n/total*100):0;return `<div class="barline"><div class="barhead"><span>${label}</span><b>${n.toLocaleString()} <span style="color:#8793a5;font-weight:500">(${p}%)</span></b></div><div class="track"><div class="fill" style="width:${p}%;background:${color||'#3478f6'}"></div></div></div>`}
+function render(){let a=current(),total=a.length,legal=a.filter(r=>has(r['Date Received'])).length,legalSent=a.filter(r=>has(r['Date Handed Over'])).length,legalPending=a.filter(r=>status(r)==='Pending from Legal').length,rmvSent=a.filter(r=>has(r['Date Handed Over to RMV'])).length,rmvGot=a.filter(r=>has(r['Date Received from RMV'])).length,rmvPending=a.filter(r=>has(r['Date Handed Over to RMV'])&&!has(r['Date Received from RMV'])).length;
+document.getElementById('kpis').innerHTML=[card('Total Applications',total,'Across selected worksheet','#eaf1ff'),card('Received from Legal',legal,`${legalSent} handed over to Legal`,'#e3f6ee'),card('Pending from Legal',legalPending,'Awaiting return from Legal','#fff3dc'),card('Sent to RMV',rmvSent,'Applications handed over to RMV','#eaf1ff'),card('Received from RMV',rmvGot,'RMV return recorded','#e3f6ee'),card('Pending from RMV',rmvPending,'Awaiting return from RMV','#fff3dc')].join('');
+document.getElementById('legalMetrics').innerHTML=metric('Handed over',legalSent,'Date Handed Over')+metric('Received back',legal,'Date Received')+metric('Pending',legalPending,'Awaiting receipt');
+document.getElementById('legalBars').innerHTML=bar('Received from Legal',legal,total,'#23966b')+bar('Pending from Legal',legalPending,total,'#e49a28');
+document.getElementById('rmvMetrics').innerHTML=metric('Handed over',rmvSent,'Date Handed Over to RMV')+metric('Received from RMV',rmvGot,'Date Received from RMV')+metric('Pending',rmvPending,'Awaiting RMV');
+document.getElementById('rmvBars').innerHTML=bar('Received from RMV',rmvGot,total,'#23966b')+bar('Pending from RMV',rmvPending,total,'#e49a28');
+let fields=docFields.filter(f=>a.some(r=>Object.hasOwn(r,f)));document.getElementById('docBars').innerHTML=fields.length?fields.map(f=>{let n=a.filter(r=>norm(r[f])==='received').length;return bar(f,n,total,'#3478f6')}).join(''):'<div class="empty">No document checklist columns found.</div>';
+let statuses={};a.forEach(r=>{let s=has(r['Overall Status'])?r['Overall Status']:'Not updated';statuses[s]=(statuses[s]||0)+1});document.getElementById('statusBars').innerHTML=Object.entries(statuses).map(([s,n])=>bar(s,n,total,'#6686ad')).join('')||'<div class="empty">No application records.</div>';
+let sel=document.getElementById('statusFilter'),old=sel.value;sel.innerHTML='<option value="">All overall statuses</option>'+Object.keys(statuses).map(s=>`<option>${s}</option>`).join('');sel.value=old;renderTable()}
+function pill(s){let c=s.startsWith('Received')?'ok':s.startsWith('Pending')?'pending':'bad';return `<span class="pill ${c}">${s}</span>`}
+function renderTable(){let a=current(),q=norm(document.getElementById('search').value),sf=document.getElementById('statusFilter').value,lf=document.getElementById('legalFilter').value,rf=document.getElementById('rmvFilter').value;
+a=a.filter(r=>{let text=[r['Employee Name'],r['Vehicle No.'],r['MSPS No.'],r['Overall Status'],r['Remarks / Return Reason']].map(norm).join(' ');return(!q||text.includes(q))&&(!sf||r['Overall Status']===sf)&&(!lf||status(r)===lf)&&(!rf||rmv(r)===rf)});
+document.getElementById('rows').innerHTML=a.length?a.map(r=>`<tr><td>${r._sheet==='brand new'?'Brand New':'Open Papers'}</td><td>${get(r,'Employee Name')||'—'}</td><td>${get(r,'Vehicle No.')||'—'}</td><td>${get(r,'MSPS No.')||'—'}</td><td>${pill(get(r,'Overall Status')||'Not updated')}</td><td>${pill(status(r))}</td><td>${fmt(get(r,'Date Received'))}</td><td>${pill(rmv(r))}</td><td>${fmt(get(r,'Date Received from RMV'))}</td><td>${get(r,'Remarks / Return Reason')||'—'}</td></tr>`).join(''):'<tr><td colspan="10" class="empty">No matching applications found.</td></tr>';
+document.getElementById('rowCount').textContent=`Showing ${a.length} application(s)`;
+}
+async function loadHostedWorkbook(){
+  const updated=document.getElementById('updated');
+  updated.textContent='Connecting to the GitHub Excel workbook…';
+  try{
+    const repoApi='https://api.github.com/repos/dihanK/RMV-DOCUMENT-TRACKING-';
+    const repoResponse=await fetch(repoApi);
+    if(!repoResponse.ok)throw new Error('Repository could not be accessed. Make sure it is public and the repository name is correct.');
+    const repo=await repoResponse.json();
+    const branch=repo.default_branch||'main';
+    const listResponse=await fetch(`${repoApi}/contents/?ref=${encodeURIComponent(branch)}`);
+    if(!listResponse.ok)throw new Error('Could not read the repository file list.');
+    const files=await listResponse.json();
+    const workbooks=files.filter(f=>f.type==='file'&&/\\.xlsx?$/i.test(f.name));
+    if(!workbooks.length)throw new Error('No Excel workbook was found in the repository root. Keep the Excel file beside this HTML file in GitHub.');
+    let workbookFile=workbooks.find(f=>/rmv|vehicle|tracking|document/i.test(f.name))||workbooks[0];
+    if(workbooks.length>1&&!workbooks.some(f=>/rmv|vehicle|tracking|document/i.test(f.name))){
+      throw new Error('More than one Excel file was found. Rename the correct workbook so its name includes RMV, Vehicle, Tracking, or Document.');
+    }
+    const fileResponse=await fetch(workbookFile.download_url);
+    if(!fileResponse.ok)throw new Error('The Excel workbook could not be downloaded from GitHub.');
+    const data=await fileResponse.arrayBuffer();
+    const wb=XLSX.read(data,{type:'array',cellDates:true});
+    parseWorkbook(wb);
+    activeTab='all';
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab==='all'));
+    updated.textContent=`Live GitHub data · ${workbookFile.name} · ${records.length} records`;
+    render();
+  }catch(err){
+    console.error('GitHub workbook loading error:',err);
+    records=[];
+    render();
+    updated.textContent='Could not load the GitHub Excel workbook';
+    document.getElementById('rows').innerHTML=`<tr><td colspan="10" class="empty">${err.message}</td></tr>`;
+    document.getElementById('rowCount').textContent='Check that the repository is public and the Excel workbook is in its root folder.';
+  }
+}
+function downloadCSV(){let a=current();let headers=['Sheet','Employee Name','MSPS No.','Vehicle No.','Overall Status','Legal Status','Date Received','RMV Status','Date Received from RMV','Remarks / Return Reason'];let lines=[headers,...a.map(r=>[r._sheet,r['Employee Name'],r['MSPS No.'],r['Vehicle No.'],r['Overall Status'],status(r),fmt(r['Date Received']),rmv(r),fmt(r['Date Received from RMV']),r['Remarks / Return Reason']])];let csv=lines.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');let blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='vehicle-registration-monitoring.csv';link.click();URL.revokeObjectURL(url)}
+render();loadHostedWorkbook();
+</script></body></html>
